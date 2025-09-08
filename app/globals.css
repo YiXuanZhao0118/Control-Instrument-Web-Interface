@@ -1,0 +1,9 @@
+/* app/globals.css（節錄） */
+@import "tailwindcss";
+
+:root {
+  --background: #f8fafc;   /* 原 #ffffff → 更柔和的冷白 */
+  --foreground: #0f172a;   /* slate-900 */
+}
+
+/* ← 刪掉整段 @media (prefers-color-scheme: dark) {...} */

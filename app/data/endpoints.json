@@ -1,0 +1,6 @@
+{
+  "Highfinesse wavemeter":   { "base": "http://172.30.10.18:9999", "instrument": "Wavemeter" },
+  "usb3104 digital": { "base": "http://172.30.10.18:9999", "instrument": "DAQ USB3104" },
+  "usb3104 analog":     { "base": "http://172.30.10.18:9999", "instrument": "DAQ USB3104" },
+  "spincore":    { "base": "http://172.30.10.18:9999", "instrument": "SpinCore" }
+}
