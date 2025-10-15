@@ -1,160 +1,153 @@
 # Control Instrument Web Interface
+# 控制儀器網頁介面
 
-本專案是一個基於 **Next.js (App Router)** 的實驗室儀器控制與資料管理介面，提供即時互動、狀態同步、與硬體 RPC 呼叫。  
-主要支援以下儀器：
+## 🧭 Project Overview | 專案簡介
+This repository hosts a **Next.js (App Router)** application for operating laboratory instruments, synchronizing live state, and performing hardware RPC calls.
+本專案是一個基於 **Next.js (App Router)** 的實驗室儀器控制與資料管理介面，提供即時互動、狀態同步與硬體 RPC 呼叫功能。
 
+Supported instruments | 支援的儀器：
 - **Wavemeter (HighFinesse, Lightwave Link)**
 - **DAQ USB3104 Analog**
 - **SpinCore Pulse Generator**
-- 以及一般 JSON 狀態檢視頁面
+- **Generic JSON state viewer**
 
 ---
 
-## 🔧 專案架構
-
+## 🏗️ Architecture | 專案架構
 ```
 app/
- ├─ admin/                 # 管理頁面 (改標題、設定 Endpoints)
- ├─ wavemeter/[id]/        # Wavemeter 控制與監控
- ├─ usb3104-analog/[id]/   # DAQ USB3104 Analog 控制
- ├─ spincore/[id]/         # SpinCore Pulse Sequencer
- ├─ instruments/[id]/      # 通用 JSON 檢視器
- └─ api/                   # 後端 API (state, mutate, undo/redo, endpoints, RPC)
+ ├─ admin/                 # Admin console (title editing, endpoint settings)
+ ├─ wavemeter/[id]/        # Wavemeter control & monitoring
+ ├─ usb3104-analog/[id]/   # DAQ USB3104 Analog controller
+ ├─ spincore/[id]/         # SpinCore pulse sequencer UI
+ ├─ instruments/[id]/      # Generic JSON viewer
+ └─ api/                   # Backend API (state, mutate, undo/redo, endpoints, RPC)
 lib/
- ├─ rpc.ts                 # RPC 呼叫定義
- ├─ rpc-client.ts          # 前端 RPC 客戶端
- ├─ rpc-server.ts          # 後端 RPC 服務端
- ├─ pageEvents.ts          # SSE (Server-Sent Events) 推播
- ├─ dataStore.ts           # 頁面資料儲存與狀態管理
- ├─ pageHistory.ts         # Undo/Redo 歷史紀錄
- ├─ endpoints-store.ts     # 儀器 endpoint 設定
- └─ types.ts               # 共用型別定義
+ ├─ rpc.ts                 # RPC definitions
+ ├─ rpc-client.ts          # Frontend RPC client
+ ├─ rpc-server.ts          # Backend RPC handler
+ ├─ pageEvents.ts          # SSE (Server-Sent Events) broadcaster
+ ├─ dataStore.ts           # Page data storage & state manager
+ ├─ pageHistory.ts         # Undo/Redo history manager
+ ├─ endpoints-store.ts     # Instrument endpoint configuration
+ └─ types.ts               # Shared type definitions
 ```
 
-- **前端框架**: Next.js 13+ with App Router, React Hooks, TailwindCSS  
-- **狀態同步**: 頁面會透過 `/api/page/[id]/events` 使用 **SSE** 即時更新  
-- **操作歷史**: 每個頁面支援 **Undo / Redo**  
-- **RPC**: 各儀器專屬 API (如 `/api/usb3104-analog/set`) 與狀態同步 API (`/mutate`)  
+Key characteristics | 核心特點：
+- **Frontend**: Next.js 13+, React Hooks, TailwindCSS
+- **State sync**: Real-time updates via `/api/page/[id]/events` (SSE)
+- **History**: Built-in **Undo / Redo** per page
+- **RPC**: Dedicated APIs per instrument (e.g. `/api/usb3104-analog/set`) and shared mutate endpoints
+- **前端框架**：Next.js 13+、React Hooks、TailwindCSS
+- **狀態同步**：透過 `/api/page/[id]/events` 使用 **SSE** 即時更新
+- **操作歷史**：每個頁面支援 **Undo / Redo**
+- **RPC**：各儀器專屬 API（如 `/api/usb3104-analog/set`）與共享狀態更新端點
 
 ---
 
-## 📑 頁面功能
+## 📑 Page Features | 頁面功能
+### 1. Admin Page (`/admin`)
+- Edit titles for any page (`/api/page/[id]/meta`)
+- Configure instrument endpoints and names
+- Manage connections for new or existing devices
+- 修改任意頁面的標題（`/api/page/[id]/meta`）
+- 設定儀器 Endpoint 與名稱
+- 便於新增、維護或更新儀器連線資訊
 
-### 1. **Admin Page (`/admin`)**
-- 修改任意頁面的標題 (透過 `/api/page/[id]/meta`)  
-- 管理 **Endpoints**: 設定各儀器的 Base URL 與 instrument 名稱  
-- 適用於新增、維護、或更新儀器連線資訊  
+### 2. Wavemeter Page (`/wavemeter/[id]`)
+- Monitor **HighFinesse Wavemeter** status
+- Features: Run/Stop, Calibrate, repetition timing, channel labels, channel enable toggles, sensor timing adjustments
+- Undo/Redo support with instant table refresh
+- 監控 **HighFinesse Wavemeter** 狀態
+- 功能：Run/Stop、Calibrate、重複時間設定、Channel 標籤、Channel 啟用切換、Sensor 值調整
+- 支援 Undo/Redo，表格即時更新
 
----
+### 3. USB3104 Analog Page (`/usb3104-analog/[id]`)
+- Control **Mcculw USB3104 DAQ** analog outputs (-10V ~ +10V, 0.001V precision)
+- Keyboard smart-step adjustments, editable channel comments, debounced RPC dispatch (~120ms)
+- Undo/Redo enabled for every change
+- 控制 **Mcculw USB3104 DAQ** 類比輸出（-10V ~ +10V，精度 0.001V）
+- 支援鍵盤智慧步進、Channel 備註編輯、約 120ms 的 RPC 送出節流
+- 每個變更皆支援 Undo/Redo
 
-### 2. **Wavemeter Page (`/wavemeter/[id]`)**
-- 監控 **HighFinesse Wavemeter** 狀態  
-- 功能：
-  - **Run / Stop** 控制儀器監測  
-  - **Calibrate** 校正  
-  - **Repetition time**：設定 channel 切換等待秒數  
-  - **Channel Label 編輯**（支援 Enter / Blur 提交，避免輸入時被即時更新打斷）  
-  - **Channel Enabled** 切換 (On/Off)  
-  - **Sensor 值設定**（毫秒 ms，會轉換為秒送到硬體層）  
-- 支援 **Undo / Redo** 操作  
-- 即時監控，表格動態更新  
+### 4. SpinCore Page (`/spincore/[id]`)
+- Manage **SpinCore Pulse Programmer** sequences and timings
+- Sequence CRUD, import/export, drag-reorder, timing range, units, instruction types, loop counts, 24-bit channel mask editing, channel naming, and run trigger
+- Undo/Redo and panel collapsing for focused editing
+- 控制 **SpinCore Pulse Programmer** 序列與時間設定
+- 提供序列新增/刪除/移動/複製/匯入、Timing 範圍與單位切換、指令類型與迴圈次數、24-bit Channel 控制、Channel 命名與執行指令
+- 支援 Undo/Redo 與面板收合，方便專注編輯
 
----
-
-### 3. **USB3104 Analog Page (`/usb3104-analog/[id]`)**
-- 控制 **Mcculw USB3104 DAQ** 的 Analog 輸出  
-- 功能：
-  - 每個 channel 可設定 **Voltage (-10V ~ +10V, 精度 0.001V)**  
-  - **鍵盤 ↑/↓** 可依游標所在位數增減 (smart step)  
-  - **Channel comment 編輯**（Enter/Blur 提交；Esc 取消）  
-  - **即時 RPC**：電壓輸入會在 ~120ms 內送出至 `/api/usb3104-analog/set`  
-- 支援 **Undo / Redo**  
-
----
-
-### 4. **SpinCore Page (`/spincore/[id]`)**
-- 控制 **SpinCore Pulse Programmer** 的序列與時間設定  
-- 功能：
-  - **Sequence 管理**：新增、刪除、移動、複製、匯入/取代  
-  - **Timing 管理**：
-    - 時間範圍、單位 (s/ms/us/ns)、類型 (WAIT, CONTINUE, BRANCH, LOOP, END_LOOP)、次數  
-    - 24-bit channel 控制 (每個 timing 指令對應 24 channel 開關)  
-    - 支援拖曳排序、匯入複製、Replace 預覽模式  
-  - **Channels 命名**  
-  - **Run** 執行當前序列  
-- 支援 **Undo / Redo**  
-- 視覺化 UI，左側 Sequence、右側 Timing + Channels，可收合面板  
+### 5. Instruments Generic Viewer (`/instruments/[id]`)
+- Fallback JSON viewer for unsupported instruments
+- Automatic routing by instrument ID (0→admin, 1→wavemeter, 2→usb3104, 3→spincore, else → raw JSON)
+- Useful during early development of new hardware integrations
+- 一般 JSON 檢視頁面
+- 依照儀器 ID 自動導向（0→admin、1→wavemeter、2→usb3104、3→spincore，其餘顯示 JSON）
+- 適合在新儀器尚未有專屬 UI 時檢視資料
 
 ---
 
-### 5. **Instruments Generic Viewer (`/instruments/[id]`)**
-- 一般 JSON 檢視頁面  
-- 功能：
-  - 依照 ID 導向不同頁面：  
-    - `0` → `/admin`  
-    - `1` → `/wavemeter/[id]`  
-    - `2` → `/usb3104-analog/[id]`  
-    - `3` → `/spincore/[id]`  
-    - 其他 → 顯示原始 JSON 狀態  
-- 適合快速檢查尚未實作 UI 的儀器資料  
+## 🔄 Data Flow | 資料流與操作
+1. **Initial load**: Fetch `/api/page/[id]/meta` and `/api/page/[id]/state`
+2. **Mutations**: Client actions call `POST /api/page/[id]/mutate`; conflicts (`409`) trigger a fresh state fetch
+3. **Realtime sync**: Server pushes `/api/page/[id]/events` via SSE, and the frontend reconciles by version
+4. **Undo/Redo**: `/api/page/[id]/undo` and `/redo` handled by `pageHistory.ts`
+1. **首次載入**：請求 `/api/page/[id]/meta` 與 `/api/page/[id]/state`
+2. **狀態更新**：使用者操作觸發 `POST /api/page/[id]/mutate`，若回傳 `409` 會重新抓取最新狀態
+3. **即時同步**：伺服器透過 `/api/page/[id]/events` (SSE) 推播更新，前端依版本比對與整合
+4. **Undo/Redo**：呼叫 `/api/page/[id]/undo` 或 `/redo`，由 `pageHistory.ts` 管理
 
 ---
 
-## 🔄 資料流與操作
-
-1. **首次載入**：前端 fetch `/api/page/[id]/meta` 與 `/api/page/[id]/state`  
-2. **狀態更新**：  
-   - 使用者操作 → `POST /api/page/[id]/mutate`  
-   - 成功 → 新版本寫入 & 回傳  
-   - 版本衝突 (`409`) → 重新抓取最新狀態  
-3. **即時同步**：  
-   - 後端推送 `/api/page/[id]/events` (SSE)  
-   - 前端比對版本號，更新 UI  
-4. **Undo / Redo**：  
-   - `/api/page/[id]/undo` / `/redo`  
-   - 透過 `pageHistory.ts` 管理  
-
----
-
-## 🚀 安裝與啟動
-
-### 需求
+## 🚀 Getting Started | 安裝與啟動
+### Requirements | 系統需求
+- Node.js 18+
+- npm or yarn
 - Node.js 18+
 - npm 或 yarn
 
-### 安裝步驟
+### Setup | 安裝步驟
 ```bash
-# 安裝相依套件
+# Install dependencies | 安裝相依套件
 npm install
 
-# 開發模式啟動
+# Start development server | 啟動開發模式
 npm run dev
 
-# 建立正式版
+# Build production bundle | 建立正式版
 npm run build
 
-# 啟動正式版
+# Run production server | 啟動正式版
 npm run start
 ```
-
-伺服器預設會在 `http://localhost:3000` 運行。
-
----
-
-## 🚀 開發注意事項
-
-- **輸入框**皆使用「本地草稿」策略，避免輸入時被即時事件覆蓋  
-- **Commit** 與 **RPC 呼叫**有 debounce，減少頻繁 API 請求  
-- **型別安全**：共用型別在 `lib/types.ts`  
-- **擴充性**：新增儀器時只需在 `/instruments/[id]` 加入 redirect 或新的 UI page  
+The app runs at `http://localhost:3000` by default.
+伺服器預設在 `http://localhost:3000` 運行。
 
 ---
 
-## ✅ 總結
+## 🧩 Development Notes | 開發注意事項
+- Inputs use local drafts to avoid being overwritten by live updates
+- RPC calls and mutations are debounced for stability
+- Shared types live in `lib/types.ts` for type safety
+- New instruments can extend `/instruments/[id]` for routing or provide dedicated pages
+- 所有輸入框皆採用「本地草稿」策略，避免被即時事件覆蓋
+- RPC 與狀態提交有防抖機制，減少 API 請求壓力
+- 共用型別集中於 `lib/types.ts`
+- 新增儀器時可在 `/instruments/[id]` 延伸導向或建立專屬頁面
 
-這個專案是一個 **儀器控制平台**，結合 **React + Next.js 前端 UI** 與 **後端 API/RPC**，提供：
-- 儀器狀態可視化  
-- 參數設定與提交  
-- 即時狀態同步  
-- Undo/Redo 操作  
-- 易於擴充的架構  
+---
+
+## ✅ Summary | 專案總結
+This project delivers a **laboratory instrument control platform** combining **React + Next.js UI** with **backend API/RPC** to provide:
+- Real-time visualization
+- Parameter editing and submission
+- Live synchronization with conflict handling
+- Undo/Redo history
+- Flexible architecture for new instrument integrations
+本專案是一個結合 **React + Next.js** 與 **後端 API/RPC** 的儀器控制平台，提供：
+- 儀器狀態即時可視化
+- 參數設定與送出
+- 即時同步與衝突處理
+- Undo/Redo 操作記錄
+- 易於擴充的新儀器整合架構

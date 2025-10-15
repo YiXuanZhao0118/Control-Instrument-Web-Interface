@@ -291,17 +291,20 @@ export default function SpinCorePage() {
   const channelNames = state["Channel name"] ?? Array(CHANNELS).fill("");
 
   function setTimingField(i: number, k: keyof Timing, v: Timing[keyof Timing]) {
+    snapshotTimingScroll();
     const next = structuredClone(state);
     (next.Sequence[seqIndex].timing[i] as any)[k] = v as never;
     scheduleCommit(next);
   }
   function toggleBit(i: number, bit: number) {
+    snapshotTimingScroll();
     const next = structuredClone(state);
     const cur = next.Sequence[seqIndex].timing[i].sequence[bit] ?? 0;
     next.Sequence[seqIndex].timing[i].sequence[bit] = cur ? 0 : 1;
     scheduleCommit(next);
   }
   function addTiming(at?: number) {
+    snapshotTimingScroll();
     const next = structuredClone(state);
     const arr = next.Sequence[seqIndex].timing;
     const pos = typeof at === "number" ? Math.max(0, Math.min(arr.length, at)) : arr.length;
@@ -310,12 +313,14 @@ export default function SpinCorePage() {
   }
   function deleteTiming(i: number) {
     if (!confirm(`Delete timing #${i + 1}?`)) return;
+    snapshotTimingScroll();
     const next = structuredClone(state);
     next.Sequence[seqIndex].timing.splice(i, 1);
     scheduleCommit(next);
   }
   function moveTiming(from: number, to: number) {
     if (from === to || to < 0 || to >= timing.length) return;
+    snapshotTimingScroll();
     const next = structuredClone(state);
     const arr = next.Sequence[seqIndex].timing;
     const item = arr.splice(from, 1)[0];
@@ -323,11 +328,13 @@ export default function SpinCorePage() {
     scheduleCommit(next);
   }
   function importTiming(into: number, from: number) {
+    snapshotTimingScroll();
     const next = structuredClone(state);
     next.Sequence[seqIndex].timing[into] = structuredClone(timing[from]);
     scheduleCommit(next);
   }
   function insertTimingCopy(src: number, at: number) {
+    snapshotTimingScroll();
     const next = structuredClone(state);
     next.Sequence[seqIndex].timing.splice(at, 0, structuredClone(timing[src]));
     scheduleCommit(next);
@@ -380,7 +387,7 @@ export default function SpinCorePage() {
       });
       scrollSnapshotRef.current = null;
     }
-  }, [menu]);
+  }, [menu, snap]);
 
   if (!snap) {
     return (
